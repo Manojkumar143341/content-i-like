@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Comment Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Video Comment Analysis</h1>
+        <input type="text" id="videoId" placeholder="Video ID" />
+        <button onclick="analyzeVideo()">Analyze Video</button>
+        <div id="videoDetails">
+            <h2>Video Details</h2>
+            <p><strong>Title:</strong> <span id="title">Loading...</span></p>
+            <p><strong>Category:</strong> <span id="category">Loading...</span></p>
+            <p><strong>Views:</strong> <span id="views">Loading...</span></p>
+            <p><strong>Likes:</strong> <span id="likes">Loading...</span></p>
+        </div>
+        <div id="commentsSection">
+            <h2>Sentiment Analysis of Comments</h2>
+            <div id="sentimentResults">
+                <p><strong>Positive:</strong> <span id="positive">0</span></p>
+                <p><strong>Negative:</strong> <span id="negative">0</span></p>
+                <p><strong>Neutral:</strong> <span id="neutral">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+
+const sentiment = new Sentiment();
+const apiKey = 'YOUR_YOUTUBE_API_KEY'; 
+
+function getVideoDetails(videoId) {
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${apiKey}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const video = data.items[0];
+            if (!video) {
+                alert('Video not found!');
+                return;
+            }
+            displayVideoDetails(video);
+            fetchComments(videoId);
+        })
+        .catch(error => console.error('Error fetching video details:', error));
+}
+
+function displayVideoDetails(video) {
+    document.getElementById('title').innerText = video.snippet.title;
+    document.getElementById('category').innerText = video.snippet.categoryId;
+    document.getElementById('views').innerText = video.statistics.viewCount;
+    document.getElementById('likes').innerText = video.statistics.likeCount;
+}
+
+function fetchComments(videoId) {
+    const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=100&key=${apiKey}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const comments = data.items.map(item => item.snippet.topLevelComment.snippet.textDisplay);
+            analyzeSentiment(comments);
+        })
+        .catch(error => console.error('Error fetching comments:', error));
+}
+
+function analyzeSentiment(comments) {
+    let positive = 0, negative = 0, neutral = 0;
+
+    comments.forEach(comment => {
+        const result = sentiment.analyze(comment);
+        if (result.score > 0) positive++;
+        else if (result.score < 0) negative++;
+        else neutral++;
+    });
+
+    document.getElementById('positive').innerText = positive;
+    document.getElementById('negative').innerText = negative;
+    document.getElementById('neutral').innerText = neutral;
+}
+
+function analyzeVideo() {
+    const videoId = document.getElementById('videoId').value;
+    if (videoId) {
+        getVideoDetails(videoId);
+    } else {
+        alert('Please enter a valid YouTube Video ID!');
+    }
+}
+    </script>
+</body>
+</html>
